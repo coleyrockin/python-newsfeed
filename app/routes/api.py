@@ -2,6 +2,7 @@ import sys
 from flask import Blueprint, request, jsonify, session
 from app.models import User
 from app.db import get_db
+from sqlalchemy.exc import SQLAlchemyError
 
 bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -21,7 +22,7 @@ def signup():
 
         db.add(newUser)
         db.commit()
-    except:
+    except (SQLAlchemyError, AssertionError, KeyError) as e:
         print(sys.exc_info()[0])
 
     # insert failed, so rollback and send error to front end
@@ -47,7 +48,7 @@ def login():
     db = get_db()
     try:
         user = db.query(User).filter(User.email == data['email']).one()
-    except:
+    except (SQLAlchemyError, KeyError) as e:
         print(sys.exc_info()[0])
         return jsonify(message='Incorrect credentials'), 400
     if user.verify_password(data['password']) == False:
